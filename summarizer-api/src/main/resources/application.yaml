@@ -1,1 +1,12 @@
-spring.application.name=summarizer-api
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.3
+          max-tokens: 1000
+
+server:
+  port: 8080
