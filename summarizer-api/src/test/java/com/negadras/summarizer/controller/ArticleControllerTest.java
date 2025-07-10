@@ -5,6 +5,8 @@ import com.negadras.summarizer.dto.Article;
 import com.negadras.summarizer.dto.SummarizationResponse;
 import com.negadras.summarizer.dto.SummarizeRequest;
 import com.negadras.summarizer.dto.Summary;
+import com.negadras.summarizer.exception.ArticleScrapingException;
+import com.negadras.summarizer.exception.SummarizationException;
 import com.negadras.summarizer.service.ScraperService;
 import com.negadras.summarizer.service.SummarizationService;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,8 +54,8 @@ class ArticleControllerTest {
         when(summarizationService.summarizeArticle(anyString(), anyString())).thenReturn(response);
 
         mockMvc.perform(post("/api/summarize/text")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.article.title").value("Test Article"))
                 .andExpect(jsonPath("$.article.content").value(content))
@@ -70,8 +73,8 @@ class ArticleControllerTest {
         SummarizeRequest request = new SummarizeRequest(null, null);
 
         mockMvc.perform(post("/api/summarize/text")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -80,8 +83,8 @@ class ArticleControllerTest {
         SummarizeRequest request = new SummarizeRequest("", null);
 
         mockMvc.perform(post("/api/summarize/text")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -99,8 +102,8 @@ class ArticleControllerTest {
         when(summarizationService.summarizeArticle(anyString(), anyString())).thenReturn(response);
 
         mockMvc.perform(post("/api/summarize/url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.article.title").value("Scraped Article"))
                 .andExpect(jsonPath("$.article.content").value("Scraped content"))
@@ -116,8 +119,8 @@ class ArticleControllerTest {
         SummarizeRequest request = new SummarizeRequest(null, null);
 
         mockMvc.perform(post("/api/summarize/url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -126,11 +129,10 @@ class ArticleControllerTest {
         SummarizeRequest request = new SummarizeRequest(null, "");
 
         mockMvc.perform(post("/api/summarize/url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
-
 
     @Test
     void summarizeText_withLongContent_shouldUseTruncatedTitle() throws Exception {
@@ -146,8 +148,8 @@ class ArticleControllerTest {
         when(summarizationService.summarizeArticle(anyString(), anyString())).thenReturn(response);
 
         mockMvc.perform(post("/api/summarize/text")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.article.title").value("Long Article"))
                 .andExpect(jsonPath("$.article.content").value(longContent))
@@ -155,22 +157,144 @@ class ArticleControllerTest {
     }
 
     @Test
-    void summarizeText_withMalformedJson_shouldReturnBadRequest() throws Exception {
-        String malformedJson = "{ \"content\": \"test\" invalid json }";
+    void summarizeText_withCompletelyMalformedJson_shouldReturnBadRequest() throws Exception {
+        String malformedJson = "not json at all";
 
         mockMvc.perform(post("/api/summarize/text")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(malformedJson))
-                .andExpect(status().isBadRequest());
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(malformedJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid request body."))
+                .andExpect(jsonPath("$.details").exists());
     }
 
     @Test
-    void summarizeUrl_withMalformedJson_shouldReturnBadRequest() throws Exception {
-        String malformedJson = "{ \"url\": \"https://example.com\" invalid json }";
+    void summarizeText_withInvalidJsonStructure_shouldReturnBadRequest() throws Exception {
+        // JSON has invalid syntax (missing closing quote) to trigger Exception
+        String invalidJson = "{ \"content\": \"test }";
+
+        mockMvc.perform(post("/api/summarize/text")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid request body."))
+                .andExpect(jsonPath("$.details").exists());
+    }
+
+    @Test
+    void summarizeText_whenSummarizationServiceThrowsSummarizationException_shouldReturnInternalServerError() throws Exception {
+        String content = "This is test content";
+        SummarizeRequest request = new SummarizeRequest(content, null);
+
+        when(summarizationService.summarizeArticle(anyString(), anyString()))
+                .thenThrow(new SummarizationException("AI service unavailable", new RuntimeException("Connection failed")));
+
+        mockMvc.perform(post("/api/summarize/text")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Failed to summarize the article."))
+                .andExpect(jsonPath("$.details").value("AI service unavailable"));
+    }
+
+    @Test
+    void summarizeUrl_whenBothScrapingAndSummarizationWork_butSummarizationFails_shouldReturnInternalServerError() throws Exception {
+        String url = "https://example.com/valid-article";
+        SummarizeRequest request = new SummarizeRequest(null, url);
+
+        Article scrapedArticle = new Article("Valid Article", "This is valid content that was scraped successfully", 10);
+
+        when(scraperService.scrapeArticleFromUrl(url)).thenReturn(scrapedArticle);
+        when(summarizationService.summarizeArticle(anyString(), anyString()))
+                .thenThrow(new SummarizationException("Failed to summarize the article.", new Exception("JSON parsing failed")));
 
         mockMvc.perform(post("/api/summarize/url")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(malformedJson))
-                .andExpect(status().isBadRequest());
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Failed to summarize the article."))
+                .andExpect(jsonPath("$.details").value("Failed to summarize the article."));
+    }
+
+    @Test
+    void summarizeUrl_whenScraperServiceThrowsArticleScrapingException_shouldReturnBadRequest() throws Exception {
+        String url = "https://invalid-url.com";
+        SummarizeRequest request = new SummarizeRequest(null, url);
+
+        when(scraperService.scrapeArticleFromUrl(url))
+                .thenThrow(new ArticleScrapingException("Failed to connect to the URL: " + url));
+
+        mockMvc.perform(post("/api/summarize/url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Failed to scrape the article."))
+                .andExpect(jsonPath("$.details").value("Failed to connect to the URL: " + url));
+    }
+
+    @Test
+    void summarizeUrl_whenScraperServiceThrowsArticleScrapingExceptionForInsufficientContent_shouldReturnBadRequest() throws Exception {
+        String url = "https://example.com/short-article";
+        SummarizeRequest request = new SummarizeRequest(null, url);
+
+        when(scraperService.scrapeArticleFromUrl(url))
+                .thenThrow(new ArticleScrapingException("Unable to extract sufficient content from the URL. " +
+                        "The article may be behind a paywall or require JavaScript."));
+
+        mockMvc.perform(post("/api/summarize/url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Failed to scrape the article."))
+                .andExpect(jsonPath("$.details").value("Unable to extract sufficient content from the URL. " +
+                        "The article may be behind a paywall or require JavaScript."));
+    }
+
+    @Test
+    void summarizeUrl_whenScraperServiceThrowsIOException_shouldReturnInternalServerError() throws Exception {
+        String url = "https://example.com";
+        SummarizeRequest request = new SummarizeRequest(null, url);
+
+        when(scraperService.scrapeArticleFromUrl(url))
+                .thenThrow(new ArticleScrapingException("Network timeout", new IOException("Connection timeout")));
+
+        mockMvc.perform(post("/api/summarize/url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Failed to scrape the article."))
+                .andExpect(jsonPath("$.details").value("Network timeout"));
+    }
+
+    @Test
+    void summarizeText_whenSummarizationServiceThrowsGenericException_shouldReturnInternalServerError() throws Exception {
+        String content = "This is test content";
+        SummarizeRequest request = new SummarizeRequest(content, null);
+
+        when(summarizationService.summarizeArticle(anyString(), anyString()))
+                .thenThrow(new RuntimeException("Unexpected error occurred"));
+
+        mockMvc.perform(post("/api/summarize/text")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred."))
+                .andExpect(jsonPath("$.details").value("Unexpected error occurred"));
+    }
+
+    @Test
+    void summarizeText_whenSummarizationServiceThrowsSpecificException_shouldNotUseGenericHandler() throws Exception {
+        String content = "Test content";
+        SummarizeRequest request = new SummarizeRequest(content, null);
+
+        when(summarizationService.summarizeArticle(anyString(), anyString()))
+                .thenThrow(new SummarizationException("AI processing failed", new RuntimeException("Specific AI error")));
+
+        mockMvc.perform(post("/api/summarize/text")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Failed to summarize the article."))
+                .andExpect(jsonPath("$.details").value("AI processing failed"));
     }
 }
