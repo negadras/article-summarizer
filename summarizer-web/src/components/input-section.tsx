@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -93,8 +93,8 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
             onClick={() => setActiveTab('text')}
             className={cn(
               "px-4 py-2 font-medium focus:outline-none flex items-center space-x-2",
-              activeTab === 'text' 
-                ? "text-primary border-b-2 border-primary" 
+              activeTab === 'text'
+                ? "text-primary border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700"
             )}
           >
@@ -105,8 +105,8 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
             onClick={() => setActiveTab('url')}
             className={cn(
               "px-4 py-2 font-medium focus:outline-none flex items-center space-x-2 ml-6",
-              activeTab === 'url' 
-                ? "text-primary border-b-2 border-primary" 
+              activeTab === 'url'
+                ? "text-primary border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700"
             )}
           >
@@ -152,8 +152,8 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
                 <span className="text-sm text-gray-500">
                   {wordCount} words
                 </span>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={textMutation.isPending}
                   className="flex items-center space-x-2"
                 >
@@ -186,8 +186,8 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
                 )}
               />
               <div className="flex justify-end">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={urlMutation.isPending}
                   className="flex items-center space-x-2"
                 >
