@@ -1,0 +1,369 @@
+openapi: 3.0.3
+info:
+  title: Article Summarizer API
+  description: |
+    A REST API for AI-powered article summarization that supports both 
+    direct text input and URL-based content extraction.
+    
+    The API leverages OpenAI's GPT-4o model to generate concise summaries 
+    with key points extraction from articles.
+
+  version: 1.0.0
+  contact:
+    name: Article Summarizer Support
+    url: https://github.com/negadras/article-summarizer
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+
+security:
+  - {}
+
+paths:
+  /api/summarize/text:
+    post:
+      summary: Summarize text content
+      description: |
+        Summarize provided text content directly using AI. The content must be at least 100 characters long
+        to generate a meaningful summary.
+      operationId: summarizeText
+      tags:
+        - Summarization
+      requestBody:
+        description: Text content to summarize
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextSummarizeRequest'
+            examples:
+              basic_text:
+                summary: Basic text summarization
+                value:
+                  content: "This is a sample article content that needs to be summarized. It contains multiple paragraphs discussing various topics and provides detailed information about the subject matter. The content is structured to provide comprehensive coverage of the topic while maintaining readability and engagement for the audience."
+                  title: "Sample Article Title"
+              minimal_text:
+                summary: Minimal text without title
+                value:
+                  content: "This is a longer piece of content that meets the minimum character requirement for summarization. It discusses important topics and provides valuable insights that can be condensed into key points and a concise summary for better understanding."
+      responses:
+        '200':
+          description: Successful summarization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummarizationResponse'
+              examples:
+                successful_summary:
+                  summary: Successful text summarization
+                  value:
+                    article:
+                      title: "Sample Article Title"
+                      content: "This is a sample article content that needs to be summarized..."
+                      wordCount: 45
+                    summary:
+                      content: "The article discusses key concepts and provides insights into the subject matter, offering valuable information for readers."
+                      keyPoints:
+                        - "Main topic focuses on key concepts"
+                        - "Provides valuable insights for readers"
+                        - "Offers comprehensive coverage of the subject"
+                      wordCount: 18
+                      compressionRatio: 60
+        '400':
+          description: Bad request - invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                empty_content:
+                  summary: Empty content error
+                  value:
+                    message: "Invalid request body."
+                    details: "Content cannot be empty"
+                short_content:
+                  summary: Content too short
+                  value:
+                    message: "Invalid request body."
+                    details: "Content must be at least 100 characters long"
+                malformed_json:
+                  summary: Malformed JSON
+                  value:
+                    message: "Invalid request body."
+                    details: "JSON parse error: Unexpected character"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                ai_service_error:
+                  summary: AI service error
+                  value:
+                    message: "Failed to summarize the article."
+                    details: "OpenAI API error: Rate limit exceeded"
+
+  /api/summarize/url:
+    post:
+      summary: Summarize content from URL
+      description: |
+        Extract content from a web URL and summarize it using AI. The URL must be publicly accessible
+        and contain sufficient text content for meaningful summarization.
+      operationId: summarizeUrl
+      tags:
+        - Summarization
+      requestBody:
+        description: URL to extract and summarize content from
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UrlSummarizeRequest'
+            examples:
+              news_article:
+                summary: News article URL
+                value:
+                  url: "https://example.com/news/article"
+              blog_post:
+                summary: Blog post URL
+                value:
+                  url: "https://blog.example.com/post/123"
+      responses:
+        '200':
+          description: Successful URL summarization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummarizationResponse'
+              examples:
+                successful_url_summary:
+                  summary: Successful URL summarization
+                  value:
+                    article:
+                      title: "Web Article Title"
+                      content: "Full article content extracted from the web page..."
+                      wordCount: 324
+                    summary:
+                      content: "The web article discusses important topics and provides comprehensive analysis of the subject matter."
+                      keyPoints:
+                        - "Main topic analysis from web content"
+                        - "Supporting evidence and examples"
+                        - "Conclusions and future implications"
+                      wordCount: 19
+                      compressionRatio: 94
+        '400':
+          description: Bad request - invalid URL or scraping failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_url:
+                  summary: Invalid URL format
+                  value:
+                    message: "Failed to scrape the article."
+                    details: "Invalid URL: not-a-valid-url"
+                insufficient_content:
+                  summary: Insufficient content extracted
+                  value:
+                    message: "Failed to scrape the article."
+                    details: "Unable to extract sufficient content from the URL. The article may be behind a paywall or require JavaScript."
+                connection_failed:
+                  summary: Connection failure
+                  value:
+                    message: "Failed to scrape the article."
+                    details: "Failed to connect to the URL: https://unreachable-site.example.com"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                processing_error:
+                  summary: Processing error
+                  value:
+                    message: "Failed to summarize the article."
+                    details: "Error processing extracted content"
+
+components:
+  securitySchemes:
+    noAuth:
+      type: http
+      scheme: bearer
+      description: "No authentication required - API is public accessible"
+  schemas:
+    TextSummarizeRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 100
+          description: The text content to summarize (minimum 100 characters)
+          example: "This is a sample article content that needs to be summarized. It contains multiple paragraphs discussing various topics and provides detailed information about the subject matter."
+        title:
+          type: string
+          description: Optional title for the article
+          example: "Sample Article Title"
+      example:
+        content: "This is a sample article content that needs to be summarized. It contains multiple paragraphs discussing various topics and provides detailed information about the subject matter. The content is structured to provide comprehensive coverage of the topic while maintaining readability and engagement for the audience."
+        title: "Sample Article Title"
+
+    UrlSummarizeRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: The URL to extract and summarize content from
+          example: "https://example.com/article"
+      example:
+        url: "https://example.com/article"
+
+    SummarizationResponse:
+      type: object
+      required:
+        - article
+        - summary
+      properties:
+        article:
+          $ref: '#/components/schemas/Article'
+        summary:
+          $ref: '#/components/schemas/Summary'
+      example:
+        article:
+          title: "Sample Article Title"
+          content: "This is a sample article content..."
+          wordCount: 45
+        summary:
+          content: "The article discusses key concepts and provides insights..."
+          keyPoints:
+            - "Main topic focuses on key concepts"
+            - "Provides valuable insights for readers"
+          wordCount: 18
+          compressionRatio: 60
+
+    Article:
+      type: object
+      required:
+        - title
+        - content
+        - wordCount
+      properties:
+        title:
+          type: string
+          description: The title of the article
+          example: "Sample Article Title"
+        content:
+          type: string
+          description: The full content of the article
+          example: "This is a sample article content that needs to be summarized..."
+        wordCount:
+          type: integer
+          minimum: 0
+          description: The number of words in the article content
+          example: 45
+      example:
+        title: "Sample Article Title"
+        content: "This is a sample article content that needs to be summarized..."
+        wordCount: 45
+
+    Summary:
+      type: object
+      required:
+        - content
+        - keyPoints
+        - wordCount
+        - compressionRatio
+      properties:
+        content:
+          type: string
+          description: The generated summary text
+          example: "The article discusses key concepts and provides insights into the subject matter."
+        keyPoints:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+          description: Array of key takeaways from the article
+          example:
+            - "Main topic focuses on key concepts"
+            - "Provides valuable insights for readers"
+            - "Offers comprehensive coverage of the subject"
+        wordCount:
+          type: integer
+          minimum: 0
+          description: The number of words in the summary
+          example: 18
+        compressionRatio:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: The percentage reduction in word count from original to summary
+          example: 60
+      example:
+        content: "The article discusses key concepts and provides insights into the subject matter."
+        keyPoints:
+          - "Main topic focuses on key concepts"
+          - "Provides valuable insights for readers"
+        wordCount: 18
+        compressionRatio: 60
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+        - details
+      properties:
+        message:
+          type: string
+          description: User-friendly error message
+          example: "Failed to summarize the article."
+        details:
+          type: string
+          description: Technical error details
+          example: "OpenAI API error: Rate limit exceeded"
+      example:
+        message: "Failed to summarize the article."
+        details: "OpenAI API error: Rate limit exceeded"
+
+  examples:
+    TextSummarizeRequestExample:
+      summary: Text summarization request
+      value:
+        content: "This is a comprehensive article about artificial intelligence and its applications in modern technology. The article explores various aspects of AI including machine learning, natural language processing, and computer vision. It discusses the current state of AI technology and its potential future developments."
+        title: "AI in Modern Technology"
+
+    UrlSummarizeRequestExample:
+      summary: URL summarization request
+      value:
+        url: "https://example.com/sample-article"
+
+    SummarizationResponseExample:
+      summary: Successful summarization response
+      value:
+        article:
+          title: "AI in Modern Technology"
+          content: "This is a comprehensive article about artificial intelligence..."
+          wordCount: 156
+        summary:
+          content: "The article provides an overview of AI technology, covering machine learning, NLP, and computer vision applications."
+          keyPoints:
+            - "AI encompasses machine learning and natural language processing"
+            - "Computer vision is a key application area"
+            - "Technology has significant future development potential"
+          wordCount: 19
+          compressionRatio: 88
+
+tags:
+  - name: Summarization
+    description: Article summarization operations
