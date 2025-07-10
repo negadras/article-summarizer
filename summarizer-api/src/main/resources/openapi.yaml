@@ -11,7 +11,7 @@ info:
   version: 1.0.0
   contact:
     name: Article Summarizer Support
-    url: https://github.com/your-org/article-summarizer
+    url: https://github.com/negadras/article-summarizer
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -19,8 +19,9 @@ info:
 servers:
   - url: http://localhost:8080
     description: Development server
-  - url: https://api.yourdomain.com
-    description: Production server
+
+security:
+  - {}
 
 paths:
   /api/summarize/text:
@@ -176,7 +177,7 @@ paths:
                   summary: Connection failure
                   value:
                     message: "Failed to scrape the article."
-                    details: "Failed to connect to the URL: https://nonexistent-domain.com"
+                    details: "Failed to connect to the URL: https://unreachable-site.example.com"
         '500':
           description: Internal server error
           content:
@@ -191,6 +192,11 @@ paths:
                     details: "Error processing extracted content"
 
 components:
+  securitySchemes:
+    noAuth:
+      type: http
+      scheme: bearer
+      description: "No authentication required - API is public accessible"
   schemas:
     TextSummarizeRequest:
       type: object
@@ -339,7 +345,7 @@ components:
     UrlSummarizeRequestExample:
       summary: URL summarization request
       value:
-        url: "https://example.com/technology/ai-article"
+        url: "https://example.com/sample-article"
 
     SummarizationResponseExample:
       summary: Successful summarization response
@@ -360,10 +366,3 @@ components:
 tags:
   - name: Summarization
     description: Article summarization operations
-    externalDocs:
-      description: Find out more about summarization
-      url: https://docs.yourdomain.com/summarization
-
-externalDocs:
-  description: Full API Documentation
-  url: https://docs.yourdomain.com/api
