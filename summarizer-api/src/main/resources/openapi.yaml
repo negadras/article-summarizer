@@ -291,6 +291,7 @@ components:
           example: "The article discusses key concepts and provides insights into the subject matter."
         keyPoints:
           type: array
+          maxItems: 10
           items:
             type: string
           description: Array of key takeaways from the article
