@@ -8,5 +8,21 @@ spring:
           temperature: 0.3
           max-tokens: 1000
 
+  cache:
+    type: simple
+
 server:
   port: 8080
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs-generated
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    url: /v3/api-docs
+
+logging:
+  level:
+    com.negadras.summarizer.controller.OpenApiController: DEBUG
