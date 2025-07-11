@@ -14,8 +14,6 @@ export default function Header() {
           </div>
           <nav className="hidden md:flex items-center space-x-6">
             <a href="#" className="text-gray-600 hover:text-primary transition-colors">How it works</a>
-            {/*<a href="#" className="text-gray-600 hover:text-primary transition-colors">Pricing</a>*/}
-            {/*<Button>Sign In</Button>*/}
           </nav>
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu className="w-4 h-4" />

@@ -38,18 +38,17 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-gray-600">
               <li><a href="#" className="hover:text-primary transition-colors">How it works</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">API Access</a></li>
-              {/*<li><a href="#" className="hover:text-primary transition-colors">Pricing</a></li>*/}
               <li><a href="#" className="hover:text-primary transition-colors">Features</a></li>
             </ul>
           </div>
           <div>
-            {/*<h4 className="font-medium text-gray-900 mb-4">Support</h4>
+            <h4 className="font-medium text-gray-900 mb-4">Support</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li><a href="#" className="hover:text-primary transition-colors">Documentation</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-            </ul>*/}
+            </ul>
           </div>
         </div>
         <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-500">

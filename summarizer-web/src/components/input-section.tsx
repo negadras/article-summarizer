@@ -39,7 +39,7 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
   const textMutation = useMutation({
     mutationFn: async (data: { content: string; title?: string }) => {
       const response = await apiRequest("POST", "/api/summarize/text", data);
-      return response.json() as Promise<SummarizationResponse>;
+      return await response.json() as Promise<SummarizationResponse>;
     },
     onMutate: () => {
       onLoading(true);
@@ -58,7 +58,7 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
   const urlMutation = useMutation({
     mutationFn: async (data: { url: string }) => {
       const response = await apiRequest("POST", "/api/summarize/url", data);
-      return response.json() as Promise<SummarizationResponse>;
+      return await response.json() as Promise<SummarizationResponse>;
     },
     onMutate: () => {
       onLoading(true);
