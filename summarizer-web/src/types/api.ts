@@ -10,9 +10,6 @@ export const submitUrlSchema = z.object({
   url: z.string().url("Please provide a valid URL"),
 });
 
-export type SubmitTextRequest = z.infer<typeof submitTextSchema>;
-export type SubmitUrlRequest = z.infer<typeof submitUrlSchema>;
-
 // Response types to match Spring Boot backend
 export interface SummarizationResponse {
   article: {
