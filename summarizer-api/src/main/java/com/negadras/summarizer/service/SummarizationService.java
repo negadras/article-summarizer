@@ -24,18 +24,33 @@ import static com.negadras.summarizer.util.TextUtils.countWords;
 public class SummarizationService {
 
     private static final String AI_PROMPT_TEMPLATE = """
-        Please analyze and summarize the following article. Provide:
-        1. A concise summary that captures the main points and essence
-        2. Key takeaways as bullet points
-        3. Maintain professional tone and accuracy
+        Please analyze and summarize the following article for a professional audience who wants to quickly understand
+        the key concepts and actionable insights.
+        
+        Requirements:
+        1. SUMMARY: Write a 2-3 sentence paragraph that explains:
+           - What the article is about
+           - The main problem it addresses or solution it provides
+           - Who would benefit from reading it
+        
+        2. KEY POINTS: Provide exactly 3-5 distinct, actionable takeaways that:
+           - Focus on practical insights or implementations
+           - Avoid repeating information from the summary
+           - Are specific enough to be useful
+           - Each point should be 10-20 words maximum
+        
+        3. QUALITY STANDARDS:
+           - Be accurate and professional
+           - Avoid redundancy between summary and key points
+           - Focus on value for the reader
         
         Article content:
         %s
         
-        Please respond in JSON format with the following structure:
+        Respond in valid JSON format:
         {
-          "summary": "concise summary paragraph",
-          "keyPoints": ["key point 1", "key point 2", "key point 3", "key point 4"]
+          "summary": "2-3 sentence summary focusing on what, why, and who",
+          "keyPoints": ["actionable insight 1", "specific takeaway 2", "practical point 3"]
         }
         """;
 
