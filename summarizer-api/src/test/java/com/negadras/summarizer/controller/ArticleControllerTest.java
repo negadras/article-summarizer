@@ -12,7 +12,6 @@ import com.negadras.summarizer.service.SummarizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,8 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = ArticleController.class)
-@Import(com.negadras.summarizer.config.TestSecurityConfig.class)
+@WebMvcTest(ArticleController.class)
 class ArticleControllerTest {
 
     @Autowired
@@ -166,7 +164,7 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(malformedJson))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Invalid request format."))
+                .andExpect(jsonPath("$.message").value("Invalid request body."))
                 .andExpect(jsonPath("$.details").exists());
     }
 
@@ -179,7 +177,7 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidJson))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Invalid request format."))
+                .andExpect(jsonPath("$.message").value("Invalid request body."))
                 .andExpect(jsonPath("$.details").exists());
     }
 
@@ -195,7 +193,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Unable to generate summary."));
+                .andExpect(jsonPath("$.message").value("Failed to summarize the article."))
+                .andExpect(jsonPath("$.details").value("AI service unavailable"));
     }
 
     @Test
@@ -213,7 +212,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Unable to generate summary."));
+                .andExpect(jsonPath("$.message").value("Failed to summarize the article."))
+                .andExpect(jsonPath("$.details").value("Failed to summarize the article."));
     }
 
     @Test
@@ -228,7 +228,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Unable to reach the article URL."));
+                .andExpect(jsonPath("$.message").value("Failed to scrape the article."))
+                .andExpect(jsonPath("$.details").value("Failed to connect to the URL: " + url));
     }
 
     @Test
@@ -244,7 +245,9 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Unable to access article content."));
+                .andExpect(jsonPath("$.message").value("Failed to scrape the article."))
+                .andExpect(jsonPath("$.details").value("Unable to extract sufficient content from the URL. " +
+                        "The article may be behind a paywall or require JavaScript."));
     }
 
     @Test
@@ -259,7 +262,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Unable to process the article."));
+                .andExpect(jsonPath("$.message").value("Failed to scrape the article."))
+                .andExpect(jsonPath("$.details").value("Network timeout"));
     }
 
     @Test
@@ -274,7 +278,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Something went wrong."));
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred."))
+                .andExpect(jsonPath("$.details").value("Unexpected error occurred"));
     }
 
     @Test
@@ -289,6 +294,7 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Unable to generate summary."));
+                .andExpect(jsonPath("$.message").value("Failed to summarize the article."))
+                .andExpect(jsonPath("$.details").value("AI processing failed"));
     }
 }

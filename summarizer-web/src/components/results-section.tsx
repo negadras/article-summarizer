@@ -1,8 +1,11 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileText, Brain, Copy, RotateCcw, CheckCircle, Target, Zap, Scale } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import type { SummarizationResponse } from "@/types/api";
+import {Card, CardContent} from "@/components/ui/card";
+import {Button} from "@/components/ui/button";
+import {Bookmark, BookmarkCheck, Brain, CheckCircle, Copy, FileText, RotateCcw, Scale, Target, Zap} from "lucide-react";
+import {useToast} from "@/hooks/use-toast";
+import {useAuth} from "@/hooks/use-auth";
+import {useState} from "react";
+import type {SummarizationResponse} from "@/types/api";
+import {userSummaryService} from "@/lib/userSummaryService";
 
 interface ResultsSectionProps {
   result: SummarizationResponse;
@@ -10,6 +13,9 @@ interface ResultsSectionProps {
 
 export default function ResultsSection({ result }: ResultsSectionProps) {
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+  const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -24,6 +30,49 @@ export default function ResultsSection({ result }: ResultsSectionProps) {
         description: "Unable to copy to clipboard",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSaveToggle = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save summaries",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      // Use a valid ID from our mock data
+      // In a real implementation, we would get the summary ID from the backend response
+      const summaryId = "1";
+
+      // Call the userSummaryService to toggle the saved status
+      const success = await userSummaryService.toggleSavedStatus(summaryId, !isSaved);
+
+      if (success) {
+        setIsSaved(!isSaved);
+        toast({
+          title: isSaved ? "Summary Unsaved" : "Summary Saved",
+          description: isSaved
+            ? "Summary removed from your saved items"
+            : "Summary added to your saved items",
+        });
+      } else {
+        throw new Error("Failed to save summary");
+      }
+    } catch (error) {
+      console.error("Error saving summary:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save summary. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -77,6 +126,19 @@ export default function ResultsSection({ result }: ResultsSectionProps) {
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={handleSaveToggle}
+                  disabled={isSaving}
+                  title={isSaved ? "Remove from saved" : "Save summary"}
+                >
+                  {isSaved ? (
+                    <BookmarkCheck className="w-4 h-4 text-primary" />
+                  ) : (
+                    <Bookmark className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => copyToClipboard(result.summary.content, "Summary")}
                   title="Copy summary"
                 >
@@ -118,7 +180,7 @@ export default function ResultsSection({ result }: ResultsSectionProps) {
           <div className="prose prose-sm max-w-none">
             <div className="text-gray-700 leading-relaxed space-y-4">
               <p className="font-medium">{result.summary.content}</p>
-              
+
               {result.summary.keyPoints.length > 0 && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <h4 className="font-medium text-gray-900 mb-2">Key Takeaways:</h4>

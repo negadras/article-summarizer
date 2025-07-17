@@ -1,7 +1,7 @@
 import React from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import InputSection from './input-section'
 
 // Mock the custom hooks
@@ -13,6 +13,32 @@ vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({
     toast: vi.fn()
   })
+}))
+
+// Mock the auth hook to simulate authenticated user
+vi.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({
+    isAuthenticated: true,
+    user: {
+      id: 'test-user',
+      username: 'testuser',
+      email: 'test@example.com',
+      role: 'user'
+    },
+    isLoading: false
+  })
+}))
+
+// Mock the userStatsService
+vi.mock('@/lib/userStatsService', () => ({
+  userStatsService: {
+    clearCache: vi.fn()
+  }
+}))
+
+// Mock the location hook
+vi.mock('wouter', () => ({
+  useLocation: () => ['/home', vi.fn()]
 }))
 
 describe('InputSection Component', () => {
@@ -84,7 +110,7 @@ describe('InputSection Component', () => {
     )
 
     const longText = 'This is a long article content that exceeds 100 words. '.repeat(10)
-    
+
     // Find elements with correct selectors
     const textarea = screen.getByPlaceholderText(/paste your article content here/i)
     const submitButton = screen.getByRole('button', { name: /generate summary/i })

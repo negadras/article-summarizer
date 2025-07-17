@@ -1,29 +1,54 @@
-import { useState } from "react";
+import {lazy, Suspense, useState} from "react";
 import Header from "@/components/header";
-import HeroSection from "@/components/hero-section";
+import Footer from "@/components/footer";
 import InputSection from "@/components/input-section";
 import LoadingSection from "@/components/loading-section";
 import ResultsSection from "@/components/results-section";
 import ErrorSection from "@/components/error-section";
-import Footer from "@/components/footer";
-import { Button } from "@/components/ui/button";
-import { Plus, Download } from "lucide-react";
-import type { SummarizationResponse } from "@/types/api";
+import {Button} from "@/components/ui/button";
+import {Download, Plus} from "lucide-react";
+import type {SummarizationResponse} from "@/types/api";
+import {useAuth} from "@/hooks/use-auth";
+
+// Lazy load components for better performance
+const PublicLandingPage = lazy(() => import("@/components/landing-page/PublicLandingPage"));
+const UserDashboard = lazy(() => import("@/components/dashboard/UserDashboard"));
+
+// Component loader
+const ComponentLoader = () => (
+  <div className="py-12">
+    <div className="animate-pulse space-y-8">
+      <div className="h-24 bg-gray-100 rounded-md mx-auto max-w-2xl"></div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-64 bg-gray-100 rounded-md"></div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
 
 export default function Home() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<SummarizationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSummarizer, setShowSummarizer] = useState(false);
 
   const handleReset = () => {
     setResult(null);
     setError(null);
     setIsLoading(false);
+    setShowSummarizer(false);
+  };
+
+  const handleStartSummarize = () => {
+    setShowSummarizer(true);
   };
 
   const handleExport = () => {
     if (!result) return;
-    
+
     const exportData = {
       title: result.article.title,
       originalContent: result.article.content,
@@ -47,52 +72,80 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
+  // Render loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <HeroSection />
-        
-        {!result && !isLoading && !error && (
-          <InputSection 
-            onLoading={setIsLoading}
-            onResult={setResult}
-            onError={setError}
-          />
-        )}
-        
-        {isLoading && <LoadingSection />}
-        
-        {error && (
-          <ErrorSection 
-            message={error}
-            onRetry={handleReset}
-          />
-        )}
-        
-        {result && (
+        {/* Show summarizer UI if explicitly requested or if there's a result/error/loading state */}
+        {(showSummarizer || result || isLoading || error) ? (
           <>
-            <ResultsSection result={result} />
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 mt-12">
-              <Button
-                variant="outline"
-                onClick={handleReset}
-                className="w-full sm:w-auto"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Summarize Another Article
-              </Button>
-              <Button
-                onClick={handleExport}
-                className="w-full sm:w-auto"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export Summary
-              </Button>
-            </div>
+            {!result && !isLoading && !error && (
+              <InputSection
+                onLoading={setIsLoading}
+                onResult={setResult}
+                onError={setError}
+              />
+            )}
+
+            {isLoading && <LoadingSection />}
+
+            {error && (
+              <ErrorSection
+                message={error}
+                onRetry={handleReset}
+              />
+            )}
+
+            {result && (
+              <>
+                <ResultsSection result={result} />
+
+                <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 mt-12">
+                  <Button
+                    variant="outline"
+                    onClick={handleReset}
+                    className="w-full sm:w-auto"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Summarize Another Article
+                  </Button>
+                  <Button
+                    onClick={handleExport}
+                    className="w-full sm:w-auto"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export Summary
+                  </Button>
+                </div>
+              </>
+            )}
           </>
+        ) : (
+          // Show differentiated landing page based on authentication status
+          <Suspense fallback={<ComponentLoader />}>
+            {isAuthenticated ? (
+              <div className="space-y-8 animate-in fade-in duration-500">
+                <UserDashboard onStartSummarize={handleStartSummarize} />
+              </div>
+            ) : (
+              <div className="animate-in fade-in duration-500">
+                <PublicLandingPage />
+              </div>
+            )}
+          </Suspense>
         )}
       </main>
 
