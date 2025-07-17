@@ -1,0 +1,23 @@
+spring:
+  security:
+    enable-csrf: false
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+
+# Disable security for integration tests
+management:
+  security:
+    enabled: false
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.negadras.summarizer: DEBUG
