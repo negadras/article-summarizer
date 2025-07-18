@@ -107,10 +107,11 @@ describe('User Summary Integration Tests', () => {
     vi.mocked(useAuth).mockReturnValue({
       isAuthenticated: true,
       isLoading: false,
-      user: { id: '1', email: 'test@example.com' },
+      user: { id: '1', email: 'test@example.com', username: 'testuser', role: 'user' },
       login: vi.fn(),
       logout: vi.fn(),
-      register: vi.fn()
+      register: vi.fn(),
+      checkAuthStatus: vi.fn()
     });
 
     // Reset localStorage

@@ -52,14 +52,13 @@ export const createAppError = (
 ): AppError => {
   const error = new Error(message) as AppError;
 
-  if (options) {
-    error.category = options.category || ErrorCategory.UNKNOWN;
-    error.severity = options.severity || ErrorSeverity.ERROR;
-    error.statusCode = options.statusCode;
-    error.retryable = options.retryable !== undefined ? options.retryable : true;
-    error.userMessage = options.userMessage || getUserFriendlyMessage(error);
-    error.cause = options.cause;
-  }
+  // Set default values
+  error.category = options?.category || ErrorCategory.UNKNOWN;
+  error.severity = options?.severity || ErrorSeverity.ERROR;
+  error.statusCode = options?.statusCode;
+  error.retryable = options?.retryable !== undefined ? options.retryable : true;
+  error.userMessage = options?.userMessage || getUserFriendlyMessage(error);
+  error.cause = options?.cause;
 
   return error;
 };
@@ -89,16 +88,8 @@ export const getUserFriendlyMessage = (error: AppError | Error): string => {
     }
   }
 
-  // Check for specific error messages
+  // Check for specific error messages (prioritize specific errors over network status)
   const errorMessage = error.message.toLowerCase();
-
-  if (errorMessage.includes('network') || errorMessage.includes('fetch') || !isOnline()) {
-    return "Network connection issue. Please check your internet connection and try again.";
-  }
-
-  if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
-    return "The request timed out. Please try again.";
-  }
 
   if (errorMessage.includes('unauthorized') || errorMessage.includes('authentication') || errorMessage.includes('401')) {
     return "Your session has expired. Please log in again.";
@@ -108,12 +99,20 @@ export const getUserFriendlyMessage = (error: AppError | Error): string => {
     return "You don't have permission to perform this action.";
   }
 
+  if (errorMessage.includes('server') || errorMessage.includes('500')) {
+    return "The server encountered an error. Our team has been notified and is working on it.";
+  }
+
   if (errorMessage.includes('not found') || errorMessage.includes('404')) {
     return "The requested resource was not found.";
   }
 
-  if (errorMessage.includes('server') || errorMessage.includes('500')) {
-    return "The server encountered an error. Our team has been notified and is working on it.";
+  if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+    return "The request timed out. Please try again.";
+  }
+
+  if (errorMessage.includes('network') || errorMessage.includes('fetch') || !isOnline()) {
+    return "Network connection issue. Please check your internet connection and try again.";
   }
 
   // Default message
@@ -130,10 +129,7 @@ export const categorizeError = (error: Error): ErrorCategory => {
 
   const errorMessage = error.message.toLowerCase();
 
-  if (!isOnline() || errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('offline')) {
-    return ErrorCategory.NETWORK;
-  }
-
+  // Prioritize specific error patterns over network status
   if (errorMessage.includes('unauthorized') || errorMessage.includes('authentication') || errorMessage.includes('401')) {
     return ErrorCategory.AUTHENTICATION;
   }
@@ -150,6 +146,10 @@ export const categorizeError = (error: Error): ErrorCategory => {
     errorMessage.includes('required') ||
     errorMessage.includes('400')) {
     return ErrorCategory.CLIENT;
+  }
+
+  if (!isOnline() || errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('offline')) {
+    return ErrorCategory.NETWORK;
   }
 
   return ErrorCategory.UNKNOWN;
@@ -194,36 +194,21 @@ export const handleError = (
 
   // Show toast notification if not silent
   if (!options?.silent && options?.toast) {
-    try {
-      // Try to use the toast function directly
-      options.toast({
-        title: category === ErrorCategory.AUTHENTICATION ? "Session Expired" : "Error",
-        description: userMessage,
-        variant: "destructive",
-        action: isRetryableError(error) && options.onRetry ? {
-          altText: "Retry",
-          onClick: options.onRetry
-        } : undefined
-      });
-    } catch (toastError) {
-      // If direct usage fails, try to use the toast method
-      try {
-        if (options.toast.toast && typeof options.toast.toast === 'function') {
-          options.toast.toast({
-            title: category === ErrorCategory.AUTHENTICATION ? "Session Expired" : "Error",
-            description: userMessage,
-            variant: "destructive",
-            action: isRetryableError(error) && options.onRetry ? {
-              altText: "Retry",
-              onClick: options.onRetry
-            } : undefined
-          });
-        }
-      } catch (nestedToastError) {
-        // If both approaches fail, log the error but don't crash
-        console.error('Failed to show toast notification:', nestedToastError);
-      }
+    const toastOptions: any = {
+      title: category === ErrorCategory.AUTHENTICATION ? "Session Expired" : "Error",
+      description: userMessage,
+      variant: "destructive"
+    };
+
+    // Add retry action if error is retryable and onRetry is provided
+    if (isRetryableError(error) && options.onRetry) {
+      toastOptions.action = {
+        label: "Retry",
+        onClick: options.onRetry
+      };
     }
+
+    options.toast.toast(toastOptions);
   }
 
   // Handle authentication errors by redirecting to login

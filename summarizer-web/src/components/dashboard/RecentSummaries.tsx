@@ -14,7 +14,7 @@ const RecentSummaries: FC = () => {
   const [recentSummaries, setRecentSummaries] = useState<UserSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const toastHook = useToast();
 
   const fetchRecentSummaries = async () => {
     try {
@@ -34,7 +34,7 @@ const RecentSummaries: FC = () => {
         setError("Failed to load recent summaries");
       } else {
         handleError(err instanceof Error ? err : new Error(String(err)), {
-          toast,
+          toast: toastHook,
           context: 'RecentSummaries',
           silent: false,
           onRetry: fetchRecentSummaries
@@ -51,7 +51,7 @@ const RecentSummaries: FC = () => {
 
     // Set up online/offline event listeners to refresh data when connection is restored
     const handleOnline = () => {
-      toast({
+      toastHook.toast({
         title: "You're back online",
         description: "Refreshing your summaries...",
       });
@@ -63,7 +63,7 @@ const RecentSummaries: FC = () => {
     return () => {
       window.removeEventListener('online', handleOnline);
     };
-  }, [toast]);
+  }, [toastHook]);
 
   const handleToggleSaved = async (summaryId: string, currentSavedStatus: boolean) => {
     try {
@@ -82,16 +82,20 @@ const RecentSummaries: FC = () => {
       );
 
       // Show toast notification
-      toast({
+      toastHook.toast({
         title: currentSavedStatus ? "Unsaving summary..." : "Saving summary...",
         description: !isOnline() ? "Will be updated when you're back online" : undefined,
       });
 
       try {
-        await userSummaryService.toggleSavedStatus(numericId.toString(), !currentSavedStatus);
+        const success = await userSummaryService.toggleSavedStatus(numericId.toString(), !currentSavedStatus);
+
+        if (!success) {
+          throw new Error("Failed to update summary saved status");
+        }
 
         // Update toast on success
-        toast({
+        toastHook.toast({
           title: currentSavedStatus ? "Summary Unsaved" : "Summary Saved",
           description: currentSavedStatus
             ? "Summary removed from your saved items"
@@ -107,14 +111,14 @@ const RecentSummaries: FC = () => {
         );
 
         handleError(error instanceof Error ? error : new Error(String(error)), {
-          toast,
+          toast: toastHook,
           context: 'RecentSummaries.toggleSaved',
           onRetry: () => handleToggleSaved(summaryId, currentSavedStatus)
         });
       }
     } catch (error) {
       handleError(error instanceof Error ? error : new Error(String(error)), {
-        toast,
+        toast: toastHook,
         context: 'RecentSummaries.toggleSaved'
       });
     }

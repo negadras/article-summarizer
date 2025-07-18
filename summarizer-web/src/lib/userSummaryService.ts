@@ -2,9 +2,6 @@ import {GetUserSummariesParams, UserSummariesResponse, UserSummary} from "@/type
 import {cacheService} from "./cacheService";
 import {createAppError, ErrorCategory, ErrorSeverity, isOnline, offlineFirstFetch} from "./errorHandlingService";
 
-const API_BASE_URL = 'http://localhost:8080/api';
-
-// Request queue for batching similar requests
 interface QueuedRequest<T> {
   resolve: (value: T) => void;
   reject: (error: any) => void;
@@ -12,68 +9,8 @@ interface QueuedRequest<T> {
 }
 
 // Request batching system
-const requestBatcher = {
-  // Queue for batched requests
-  queue: new Map<string, QueuedRequest<any>[]>(),
-
-  // Timers for each batch type
-  timers: new Map<string, NodeJS.Timeout>(),
-
-  // Batch delay in ms
-  batchDelay: 50,
-
-  // Add a request to the batch queue
-  add<T>(batchKey: string, params: any, executor: (batchedParams: any[]) => Promise<T[]>): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-      // Create queue for this batch type if it doesn't exist
-      if (!this.queue.has(batchKey)) {
-        this.queue.set(batchKey, []);
-      }
-
-      // Add request to queue
-      this.queue.get(batchKey)!.push({ resolve, reject, params });
-
-      // Clear existing timer if any
-      if (this.timers.has(batchKey)) {
-        clearTimeout(this.timers.get(batchKey)!);
-      }
-
-      // Set timer to process batch
-      this.timers.set(batchKey, setTimeout(() => {
-        this.processBatch(batchKey, executor);
-      }, this.batchDelay));
-    });
-  },
-
-  // Process a batch of requests
-  async processBatch<T>(batchKey: string, executor: (batchedParams: any[]) => Promise<T[]>) {
-    // Get and clear queue
-    const requests = this.queue.get(batchKey) || [];
-    this.queue.delete(batchKey);
-    this.timers.delete(batchKey);
-
-    if (requests.length === 0) return;
-
-    try {
-      // Extract all params
-      const allParams = requests.map(req => req.params);
-
-      // Execute batch request
-      const results = await executor(allParams);
-
-      // Resolve each request with its result
-      requests.forEach((request, index) => {
-        request.resolve(results[index]);
-      });
-    } catch (error) {
-      // Reject all requests with the error
-      requests.forEach(request => {
-        request.reject(error);
-      });
-    }
-  }
-};
-
+new Map<string, QueuedRequest<any>[]>();
+new Map<string, NodeJS.Timeout>();
 /**
  * Generate a cache key for user summaries
  */
@@ -128,10 +65,8 @@ export const userSummaryService = {
         if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
         if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
         if (params?.saved !== undefined) queryParams.append('saved', params.saved.toString());
+        queryParams.toString() ? `?${queryParams.toString()}` : '';
 
-        const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-
-        // Use offline-first fetch with fallback to cached data
         return offlineFirstFetch(
           async () => {
             // For development purposes, return mock data instead of making API calls
@@ -144,54 +79,8 @@ export const userSummaryService = {
               totalCount: params?.saved ? 2 : 5
             };
 
-            /* Commented out for now to avoid 500 errors
-            const response = await fetch(`${API_BASE_URL}/users/me/summaries${queryString}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            });
-
-            if (!response.ok) {
-              // Create appropriate error based on status code
-              const statusCode = response.status;
-              let errorMessage = `Failed to fetch user summaries (${statusCode})`;
-              let category = ErrorCategory.UNKNOWN;
-
-              switch (statusCode) {
-                case 401:
-                  errorMessage = 'Your session has expired. Please log in again.';
-                  category = ErrorCategory.AUTHENTICATION;
-                  break;
-                case 403:
-                  errorMessage = 'You don\'t have permission to access these summaries.';
-                  category = ErrorCategory.AUTHENTICATION;
-                  break;
-                case 404:
-                  errorMessage = 'No summaries found.';
-                  category = ErrorCategory.CLIENT;
-                  break;
-                case 500:
-                case 502:
-                case 503:
-                case 504:
-                  errorMessage = 'The server encountered an error. Please try again later.';
-                  category = ErrorCategory.SERVER;
-                  break;
-              }
-
-              throw createAppError(errorMessage, {
-                category,
-                statusCode,
-                retryable: [408, 429, 500, 502, 503, 504].includes(statusCode),
-                userMessage: errorMessage
-              });
-            }
-
-            return await response.json();
-            */
           },
-          // Fallback function that returns cached data or mock data
+
           () => {
             // Check if we're offline
             if (!isOnline()) {
@@ -259,58 +148,6 @@ export const userSummaryService = {
             }
 
             return mockSummary;
-
-            /* Commented out for now to avoid 500 errors
-            const response = await fetch(`${API_BASE_URL}/users/me/summaries/${id}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            });
-
-            if (!response.ok) {
-              // Create appropriate error based on status code
-              const statusCode = response.status;
-              let errorMessage = `Failed to fetch summary details (${statusCode})`;
-              let category = ErrorCategory.UNKNOWN;
-              let userMessage = 'Unable to load summary details. Please try again.';
-
-              switch (statusCode) {
-                case 401:
-                  errorMessage = 'Your session has expired. Please log in again.';
-                  userMessage = errorMessage;
-                  category = ErrorCategory.AUTHENTICATION;
-                  break;
-                case 403:
-                  errorMessage = 'You don\'t have permission to access this summary.';
-                  userMessage = errorMessage;
-                  category = ErrorCategory.AUTHENTICATION;
-                  break;
-                case 404:
-                  errorMessage = 'Summary not found.';
-                  userMessage = 'The requested summary could not be found.';
-                  category = ErrorCategory.CLIENT;
-                  break;
-                case 500:
-                case 502:
-                case 503:
-                case 504:
-                  errorMessage = 'The server encountered an error while retrieving the summary.';
-                  userMessage = 'Unable to load summary details due to a server error. Please try again later.';
-                  category = ErrorCategory.SERVER;
-                  break;
-              }
-
-              throw createAppError(errorMessage, {
-                category,
-                statusCode,
-                retryable: [408, 429, 500, 502, 503, 504].includes(statusCode),
-                userMessage
-              });
-            }
-
-            return await response.json();
-            */
           },
           // Fallback function that returns cached data or mock data
           () => {
@@ -389,61 +226,7 @@ export const userSummaryService = {
 
           return true;
 
-          /* Commented out for now to avoid 500 errors
-          // Determine method based on desired state
-          const method = isSaved ? 'POST' : 'DELETE';
 
-          const response = await fetch(`${API_BASE_URL}/users/me/summaries/${summaryId}/save`, {
-            method,
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (!response.ok) {
-            // Create appropriate error based on status code
-            const statusCode = response.status;
-            let errorMessage = `Failed to ${isSaved ? 'save' : 'unsave'} summary (${statusCode})`;
-            let category = ErrorCategory.UNKNOWN;
-            let userMessage = `Unable to ${isSaved ? 'save' : 'unsave'} summary. Please try again.`;
-
-            switch (statusCode) {
-              case 401:
-                errorMessage = 'Your session has expired. Please log in again.';
-                userMessage = errorMessage;
-                category = ErrorCategory.AUTHENTICATION;
-                break;
-              case 403:
-                errorMessage = 'You don\'t have permission to modify this summary.';
-                userMessage = errorMessage;
-                category = ErrorCategory.AUTHENTICATION;
-                break;
-              case 404:
-                errorMessage = 'Summary not found.';
-                userMessage = 'The summary you\'re trying to modify could not be found.';
-                category = ErrorCategory.CLIENT;
-                break;
-              case 500:
-              case 502:
-              case 503:
-              case 504:
-                errorMessage = `Server error while ${isSaved ? 'saving' : 'unsaving'} summary.`;
-                userMessage = `Unable to ${isSaved ? 'save' : 'unsave'} summary due to a server error. Please try again later.`;
-                category = ErrorCategory.SERVER;
-                break;
-            }
-
-            throw createAppError(errorMessage, {
-              category,
-              statusCode,
-              retryable: [408, 429, 500, 502, 503, 504].includes(statusCode),
-              userMessage
-            });
-          }
-
-          return true;
-          */
         },
         // Fallback function for offline mode
         () => {
@@ -495,48 +278,6 @@ export const userSummaryService = {
 
       return false;
     }
-  },
-
-  /**
-   * Prefetch user summaries for common views
-   * This can be called on app initialization or dashboard load
-   */
-  prefetchCommonViews: async (): Promise<void> => {
-    // Don't prefetch if not authenticated
-    const token = localStorage.getItem('authToken');
-    if (!token) return;
-
-    // Prefetch recent summaries
-    const recentKey = getUserSummariesCacheKey({
-      page: 0,
-      size: 5,
-      sortBy: 'createdAt',
-      sortOrder: 'desc'
-    });
-
-    cacheService.prefetch(recentKey, async () => {
-      return userSummaryService.getUserSummaries({
-        page: 0,
-        size: 5,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
-      });
-    }, 60);
-
-    // Prefetch saved summaries
-    const savedKey = getUserSummariesCacheKey({
-      page: 0,
-      size: 3,
-      saved: true
-    });
-
-    cacheService.prefetch(savedKey, async () => {
-      return userSummaryService.getUserSummaries({
-        page: 0,
-        size: 3,
-        saved: true
-      });
-    }, 60);
   },
 
   /**

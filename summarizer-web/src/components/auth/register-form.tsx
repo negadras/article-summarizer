@@ -53,7 +53,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      termsAccepted: false,
+      termsAccepted: undefined,
     }
   })
 

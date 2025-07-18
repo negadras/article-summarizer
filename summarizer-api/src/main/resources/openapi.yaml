@@ -799,6 +799,7 @@ components:
       properties:
         summaries:
           type: array
+          maxItems: 10
           items:
             $ref: '#/components/schemas/UserSummaryDTO'
           description: List of user summaries
@@ -958,6 +959,7 @@ components:
       properties:
         summaries:
           type: array
+          maxItems: 10
           items:
             $ref: '#/components/schemas/ShowcaseSummaryDTO'
           description: List of showcase summaries

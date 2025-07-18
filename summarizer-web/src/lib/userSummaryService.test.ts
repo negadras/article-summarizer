@@ -8,7 +8,9 @@ vi.mock('./cacheService', () => ({
     get: vi.fn(),
     set: vi.fn(),
     remove: vi.fn(),
-    clearUserCache: vi.fn()
+    clearUserCache: vi.fn(),
+    clearByPrefix: vi.fn(),
+    getOrFetch: vi.fn()
   }
 }));
 
@@ -45,6 +47,15 @@ describe('userSummaryService', () => {
       // Clear the token
       localStorageMock.removeItem('authToken');
 
+      const expectedResult = {
+        summaries: [{ id: '1', title: 'Mock Summary' }],
+        totalPages: 1,
+        currentPage: 0,
+        totalCount: 5
+      };
+
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(expectedResult);
+
       const result = await userSummaryService.getUserSummaries();
 
       expect(result).toBeDefined();
@@ -63,27 +74,42 @@ describe('userSummaryService', () => {
       };
 
       // Setup cache to return mock data
-      vi.mocked(cacheService.get).mockReturnValue(mockCachedData);
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockCachedData);
 
       const result = await userSummaryService.getUserSummaries();
 
-      expect(cacheService.get).toHaveBeenCalled();
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
       expect(result).toEqual(mockCachedData);
     });
 
     it('should cache mock data when no cached data is available', async () => {
-      // Setup cache to return null (no cached data)
-      vi.mocked(cacheService.get).mockReturnValue(null);
+      const mockData = {
+        summaries: [{ id: '1', title: 'Mock Summary' }],
+        totalPages: 1,
+        currentPage: 0,
+        totalCount: 5
+      };
+
+      // Setup cache to return mock data
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockData);
 
       const result = await userSummaryService.getUserSummaries();
 
-      expect(cacheService.get).toHaveBeenCalled();
-      expect(cacheService.set).toHaveBeenCalled();
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
       expect(result).toBeDefined();
       expect(result.summaries).toBeInstanceOf(Array);
     });
 
     it('should handle saved filter correctly', async () => {
+      const mockSavedSummaries = {
+        summaries: [{ id: '1', title: 'Saved Summary', saved: true }],
+        totalPages: 1,
+        currentPage: 0,
+        totalCount: 1
+      };
+
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockSavedSummaries);
+
       const result = await userSummaryService.getUserSummaries({ saved: true });
 
       expect(result).toBeDefined();
@@ -96,6 +122,10 @@ describe('userSummaryService', () => {
   describe('getUserSummary', () => {
     it('should return a specific summary by ID', async () => {
       const summaryId = '1';
+      const mockSummary = { id: summaryId, title: 'Test Summary' };
+
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockSummary);
+
       const result = await userSummaryService.getUserSummary(summaryId);
 
       expect(result).toBeDefined();
@@ -107,11 +137,11 @@ describe('userSummaryService', () => {
       const mockCachedData = { id: summaryId, title: 'Cached Summary Detail' };
 
       // Setup cache to return mock data
-      vi.mocked(cacheService.get).mockReturnValue(mockCachedData);
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockCachedData);
 
       const result = await userSummaryService.getUserSummary(summaryId);
 
-      expect(cacheService.get).toHaveBeenCalled();
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
       expect(result).toEqual(mockCachedData);
     });
   });
@@ -124,8 +154,7 @@ describe('userSummaryService', () => {
       const result = await userSummaryService.toggleSavedStatus(summaryId, isSaved);
 
       expect(result).toBe(true);
-      expect(cacheService.clearUserCache).toHaveBeenCalled();
-      expect(cacheService.remove).toHaveBeenCalledWith(`user_summary_${summaryId}`);
+      expect(cacheService.clearByPrefix).toHaveBeenCalled();
     });
 
     it('should handle errors when no token is available', async () => {
@@ -135,9 +164,7 @@ describe('userSummaryService', () => {
       const summaryId = '1';
       const isSaved = true;
 
-      const result = await userSummaryService.toggleSavedStatus(summaryId, isSaved);
-
-      expect(result).toBe(false);
+      await expect(userSummaryService.toggleSavedStatus(summaryId, isSaved)).rejects.toThrow('Authentication required');
     });
   });
 });

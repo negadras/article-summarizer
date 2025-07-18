@@ -107,6 +107,7 @@ describe('errorHandlingService', () => {
     });
 
     it('should return default message for unknown errors', () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
       const error = new Error('Some random error');
       expect(getUserFriendlyMessage(error)).toBe('Something went wrong. Please try again later.');
     });
@@ -142,6 +143,7 @@ describe('errorHandlingService', () => {
     });
 
     it('should categorize unknown errors', () => {
+      vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
       const error = new Error('Some random error');
       expect(categorizeError(error)).toBe(ErrorCategory.UNKNOWN);
     });
@@ -275,15 +277,13 @@ describe('errorHandlingService', () => {
       // Only allow 1 retry (2 attempts total)
       const promise = withRetry(fn, { maxAttempts: 2 });
 
-      // Fast-forward timers to trigger retry
-      await vi.runAllTimersAsync();
+      // Fast-forward timers to trigger retry and wait for the promise to complete
+      const [, result] = await Promise.allSettled([vi.runAllTimersAsync(), promise]);
 
-      try {
-        await promise;
-        fail('Should have thrown an error');
-      } catch (error) {
-        expect(fn).toHaveBeenCalledTimes(2);
-        expect(error).toBeInstanceOf(Error);
+      expect(fn).toHaveBeenCalledTimes(2);
+      expect(result.status).toBe('rejected');
+      if (result.status === 'rejected') {
+        expect(result.reason).toBeInstanceOf(Error);
       }
     });
 
@@ -340,8 +340,8 @@ describe('errorHandlingService', () => {
 
       const result = await offlineFirstFetch(fetchFn, fallbackFn);
 
-      expect(fetchFn).toHaveBeenCalledTimes(1);
-      expect(fallbackFn).toHaveBeenCalledTimes(1);
+      expect(fetchFn).toHaveBeenCalledTimes(3); // withRetry default is 3 attempts
+      expect(fallbackFn).toHaveBeenCalledTimes(1); // Called once in catch after all retries fail
       expect(result).toBe('fallback result');
     });
 
@@ -353,8 +353,8 @@ describe('errorHandlingService', () => {
 
       await expect(offlineFirstFetch(fetchFn, fallbackFn)).rejects.toThrow('Fetch failed');
 
-      expect(fetchFn).toHaveBeenCalledTimes(1);
-      expect(fallbackFn).toHaveBeenCalledTimes(1);
+      expect(fetchFn).toHaveBeenCalledTimes(3); // withRetry default is 3 attempts
+      expect(fallbackFn).toHaveBeenCalledTimes(1); // Called once in catch after all retries fail
     });
 
     it('should force fetch even when offline if forceRefresh is true', async () => {

@@ -1,4 +1,4 @@
-import {FC, useState} from "react";
+import {FC} from "react";
 import {useAuth} from "@/hooks/use-auth";
 import QuickActions from "./QuickActions";
 import RecentSummaries from "./RecentSummaries";
@@ -16,12 +16,7 @@ interface UserDashboardProps {
  */
 const UserDashboard: FC<UserDashboardProps> = ({ onStartSummarize }) => {
   const { user } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  // refresh all dashboard components
-  const refreshDashboard = () => {
-    setRefreshKey(prevKey => prevKey + 1);
-  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -49,14 +44,14 @@ const UserDashboard: FC<UserDashboardProps> = ({ onStartSummarize }) => {
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-          <RecentSummaries key={`recent-${refreshKey}`} />
+          <RecentSummaries />
         </div>
         <div>
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-            <UserStats key={`stats-${refreshKey}`} />
+            <UserStats />
           </div>
           <div className="mt-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-450">
-            <SavedSummaries key={`saved-${refreshKey}`} />
+            <SavedSummaries />
           </div>
         </div>
       </div>

@@ -7,7 +7,7 @@ import {useAuth} from '../hooks/use-auth'
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [location, setLocation] = useLocation()
+  const [, setLocation] = useLocation()
   const { isAuthenticated } = useAuth()
 
   // Check for mode parameter in URL

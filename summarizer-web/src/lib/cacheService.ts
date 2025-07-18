@@ -43,7 +43,9 @@ export const cacheService = {
     if (memoryCache.size > MAX_MEMORY_CACHE_SIZE) {
       // Remove oldest item (first item in the map)
       const firstKey = memoryCache.keys().next().value;
-      memoryCache.delete(firstKey);
+      if (firstKey) {
+        memoryCache.delete(firstKey);
+      }
     }
     
     // Store in localStorage unless memoryOnly is true

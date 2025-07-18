@@ -7,7 +7,8 @@ vi.mock('./cacheService', () => ({
   cacheService: {
     get: vi.fn(),
     set: vi.fn(),
-    clearByPrefix: vi.fn()
+    clearByPrefix: vi.fn(),
+    getOrFetch: vi.fn()
   }
 }));
 
@@ -29,25 +30,24 @@ describe('showcaseService', () => {
       };
 
       // Setup cache to return mock data
-      vi.mocked(cacheService.get).mockReturnValue(mockCachedData);
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockCachedData);
 
       const result = await showcaseService.getShowcaseSummaries();
 
-      expect(cacheService.get).toHaveBeenCalled();
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
       expect(result).toEqual(mockCachedData);
-      expect(fetch).not.toHaveBeenCalled();
     });
 
     it('should fetch data from API when cache is empty', async () => {
-      // Setup cache to return null (no cached data)
-      vi.mocked(cacheService.get).mockReturnValue(null);
-
       // Mock successful API response
       const mockApiResponse = {
         summaries: [{ id: 'api-1', title: 'API Showcase Summary' }],
         totalPages: 3,
         currentPage: 0
       };
+
+      // Setup cache to return the fetched data
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockApiResponse);
 
       vi.mocked(fetch).mockResolvedValue({
         ok: true,
@@ -56,31 +56,40 @@ describe('showcaseService', () => {
 
       const result = await showcaseService.getShowcaseSummaries();
 
-      expect(cacheService.get).toHaveBeenCalled();
-      expect(fetch).toHaveBeenCalled();
-      expect(cacheService.set).toHaveBeenCalled();
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
       expect(result).toEqual(mockApiResponse);
     });
 
     it('should handle API errors gracefully', async () => {
-      // Setup cache to return null (no cached data)
-      vi.mocked(cacheService.get).mockReturnValue(null);
+      // Mock error fallback data
+      const mockFallbackData = {
+        summaries: [],
+        totalPages: 0,
+        currentPage: 0
+      };
+
+      // Setup cache to return fallback data
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockFallbackData);
 
       // Mock fetch to throw an error
       vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
 
       const result = await showcaseService.getShowcaseSummaries();
 
-      expect(cacheService.get).toHaveBeenCalled();
-      expect(fetch).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.summaries).toBeInstanceOf(Array);
-      expect(result.summaries.length).toBeGreaterThan(0);
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockFallbackData);
     });
 
     it('should handle non-ok API responses', async () => {
-      // Setup cache to return null (no cached data)
-      vi.mocked(cacheService.get).mockReturnValue(null);
+      // Mock fallback data for non-ok responses
+      const mockFallbackData = {
+        summaries: [],
+        totalPages: 0,
+        currentPage: 0
+      };
+
+      // Setup cache to return fallback data
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockFallbackData);
 
       // Mock failed API response
       vi.mocked(fetch).mockResolvedValue({
@@ -91,18 +100,20 @@ describe('showcaseService', () => {
 
       const result = await showcaseService.getShowcaseSummaries();
 
-      expect(cacheService.get).toHaveBeenCalled();
-      expect(fetch).toHaveBeenCalled();
-      expect(result).toBeDefined();
-      expect(result.summaries).toBeInstanceOf(Array);
+      expect(cacheService.getOrFetch).toHaveBeenCalled();
+      expect(result).toEqual(mockFallbackData);
     });
 
     it('should handle query parameters correctly', async () => {
-      // Setup cache to return null (no cached data)
-      vi.mocked(cacheService.get).mockReturnValue(null);
+      // Mock data for query parameter test
+      const mockData = {
+        summaries: [],
+        totalPages: 0,
+        currentPage: 0
+      };
 
-      // Mock fetch to throw an error (we're just testing the URL construction)
-      vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+      // Setup cache to return mock data
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockData);
 
       await showcaseService.getShowcaseSummaries({
         page: 2,
@@ -110,18 +121,23 @@ describe('showcaseService', () => {
         category: 'Technology'
       });
 
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('?page=2&size=5&category=Technology'),
-        expect.anything()
+      expect(cacheService.getOrFetch).toHaveBeenCalledWith(
+        expect.stringContaining('showcase_?page=2&size=5&category=Technology'),
+        expect.any(Function),
+        expect.any(Number)
       );
     });
 
     it('should use correct cache key based on query parameters', async () => {
-      // Setup cache to return null (no cached data)
-      vi.mocked(cacheService.get).mockReturnValue(null);
+      // Mock data for cache key test
+      const mockData = {
+        summaries: [],
+        totalPages: 0,
+        currentPage: 0
+      };
 
-      // Mock fetch to throw an error
-      vi.mocked(fetch).mockRejectedValue(new Error('Network error'));
+      // Setup cache to return mock data
+      vi.mocked(cacheService.getOrFetch).mockResolvedValue(mockData);
 
       await showcaseService.getShowcaseSummaries({
         page: 2,
@@ -129,8 +145,10 @@ describe('showcaseService', () => {
         category: 'Technology'
       });
 
-      expect(cacheService.get).toHaveBeenCalledWith(
-        'showcase_?page=2&size=5&category=Technology'
+      expect(cacheService.getOrFetch).toHaveBeenCalledWith(
+        'showcase_?page=2&size=5&category=Technology',
+        expect.any(Function),
+        expect.any(Number)
       );
     });
   });

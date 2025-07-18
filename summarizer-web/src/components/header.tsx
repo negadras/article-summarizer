@@ -92,7 +92,7 @@ export default function Header() {
                       Saved Summaries
                     </a>
                     <button
-                      onClick={handleAuthClick}
+                      onClick={() => handleAuthClick()}
                       className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
@@ -164,7 +164,7 @@ export default function Header() {
                   <span className="font-medium">{user?.username}</span>
                 </div>
                 <button
-                  onClick={handleAuthClick}
+                  onClick={() => handleAuthClick()}
                   className="flex items-center space-x-2 py-2 text-red-600"
                 >
                   <LogOut className="w-4 h-4" />

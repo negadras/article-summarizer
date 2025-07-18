@@ -158,6 +158,9 @@ describe('cacheService', () => {
       // Reset localStorage mock to verify it's not called
       vi.resetAllMocks();
 
+      // Mock Date.now again after resetAllMocks
+      vi.spyOn(Date, 'now').mockReturnValue(now);
+
       // Get item from cache
       const result = cacheService.get(key);
 
@@ -335,7 +338,6 @@ describe('cacheService', () => {
 
     it('should clear only user-specific cache entries from both localStorage and memory', () => {
       const mockToken = 'token-12345678';
-      const tokenHash = '12345678';
 
       // Setup localStorage with token and various cached items
       vi.mocked(localStorageMock.getItem).mockImplementation((key) => {

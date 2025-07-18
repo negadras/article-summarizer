@@ -29,7 +29,9 @@ Object.defineProperty(window, 'location', {
 
 describe('SavedSummaries', () => {
   const mockToast = {
-    toast: vi.fn()
+    toast: vi.fn(),
+    dismiss: vi.fn(),
+    toasts: []
   };
 
   const mockSavedSummaries = {
