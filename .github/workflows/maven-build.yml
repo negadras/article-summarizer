@@ -9,6 +9,12 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  POSTGRES_DB: summarizer_db
+  POSTGRES_USER: summarizer_user
+  POSTGRES_PASSWORD: summarizer_password
+  JWT_SECRET_KEY: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+
 defaults:
   run:
     working-directory: summarizer-api
@@ -16,6 +22,21 @@ defaults:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - uses: actions/checkout@v4
@@ -27,8 +48,22 @@ jobs:
           java-version: '24'
           cache: maven
 
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+
       - name: Build with Maven
         run: mvn -B package
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/${{ env.POSTGRES_DB }}
+          SPRING_DATASOURCE_USERNAME: ${{ env.POSTGRES_USER }}
+          SPRING_DATASOURCE_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          JWT_SECRET_KEY: ${{ env.JWT_SECRET_KEY }}
 
       - name: Update dependency graph
         uses: advanced-security/maven-dependency-submission-action@571e99aab1055c2e71a1e2309b9691de18d6b7d6
