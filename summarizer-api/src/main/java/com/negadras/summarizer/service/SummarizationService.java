@@ -7,8 +7,8 @@ import com.negadras.summarizer.dto.Article;
 import com.negadras.summarizer.dto.SummarizationResponse;
 import com.negadras.summarizer.dto.Summary;
 import com.negadras.summarizer.exception.SummarizationException;
-import com.negadras.summarizer.util.TextUtils;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.retry.NonTransientAiException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -24,8 +24,7 @@ import static com.negadras.summarizer.util.TextUtils.countWords;
 public class SummarizationService {
 
     private static final String AI_PROMPT_TEMPLATE = """
-        Please analyze and summarize the following article for a professional audience who wants to quickly understand
-        the key concepts and actionable insights.
+        Please analyze and summarize the following article for a professional audience who wants to quickly understand the key concepts and actionable insights.
         
         Requirements:
         1. SUMMARY: Write a 2-3 sentence paragraph that explains:
@@ -96,6 +95,8 @@ public class SummarizationService {
             Summary summary = new Summary(summaryContent, keyPoints, summaryWordCount, compressionRatio);
 
             return new SummarizationResponse(article, summary);
+        } catch (NonTransientAiException e) {
+            throw e;
         } catch (Exception e) {
             throw new SummarizationException("Failed to summarize the article.", e);
         }

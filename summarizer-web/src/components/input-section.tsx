@@ -1,16 +1,19 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Keyboard, Link as LinkIcon, Sparkles, Download } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
-import { submitTextSchema, submitUrlSchema, type SummarizationResponse } from "@/types/api";
-import { cn } from "@/lib/utils";
+import {useState} from "react";
+import {useForm} from "react-hook-form";
+import {zodResolver} from "@hookform/resolvers/zod";
+import {useMutation} from "@tanstack/react-query";
+import {Button} from "@/components/ui/button";
+import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {Textarea} from "@/components/ui/textarea";
+import {Input} from "@/components/ui/input";
+import {Card, CardContent} from "@/components/ui/card";
+import {Download, Keyboard, Link as LinkIcon, Lock, Sparkles} from "lucide-react";
+import {apiRequest} from "@/lib/queryClient";
+import {submitTextSchema, submitUrlSchema, type SummarizationResponse} from "@/types/api";
+import {cn} from "@/lib/utils";
+import {useAuth} from "@/hooks/use-auth";
+import {useLocation} from "wouter";
+import {userStatsService} from "@/lib/userStatsService";
 
 interface InputSectionProps {
   onLoading: (loading: boolean) => void;
@@ -20,6 +23,8 @@ interface InputSectionProps {
 
 export default function InputSection({ onLoading, onResult, onError }: InputSectionProps) {
   const [activeTab, setActiveTab] = useState<'text' | 'url'>('text');
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
 
   const textForm = useForm({
     resolver: zodResolver(submitTextSchema),
@@ -46,6 +51,10 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
       onError("");
     },
     onSuccess: (data) => {
+      // Clear user stats cache to reflect the new summary
+      if (isAuthenticated) {
+        userStatsService.clearCache();
+      }
       onLoading(false);
       onResult(data);
     },
@@ -65,6 +74,10 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
       onError("");
     },
     onSuccess: (data) => {
+      // Clear user stats cache to reflect the new summary
+      if (isAuthenticated) {
+        userStatsService.clearCache();
+      }
       onLoading(false);
       onResult(data);
     },
@@ -84,6 +97,27 @@ export default function InputSection({ onLoading, onResult, onError }: InputSect
 
   const articleText = textForm.watch("content");
   const wordCount = articleText ? articleText.trim().split(/\s+/).length : 0;
+
+  if (!isAuthenticated) {
+    return (
+      <Card className="mb-8">
+        <CardContent className="p-6">
+          <div className="text-center py-8">
+            <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Authentication Required
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Please sign in to access the article summarization feature
+            </p>
+            <Button onClick={() => setLocation("/auth")} className="flex items-center space-x-2">
+              <span>Sign In</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mb-8">

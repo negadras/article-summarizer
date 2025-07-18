@@ -9,6 +9,7 @@ import com.negadras.summarizer.exception.ArticleScrapingException;
 import com.negadras.summarizer.exception.SummarizationException;
 import com.negadras.summarizer.service.ScraperService;
 import com.negadras.summarizer.service.SummarizationService;
+import com.negadras.summarizer.service.UserSummaryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -27,7 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = ArticleController.class)
+@WebMvcTest(ArticleController.class)
 @Import(com.negadras.summarizer.config.TestSecurityConfig.class)
 class ArticleControllerTest {
 
@@ -39,6 +40,9 @@ class ArticleControllerTest {
 
     @MockitoBean
     private ScraperService scraperService;
+
+    @MockitoBean
+    private UserSummaryService userSummaryService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -195,7 +199,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Unable to generate summary."));
+                .andExpect(jsonPath("$.message").value("Unable to generate summary."))
+                .andExpect(jsonPath("$.details").value("We encountered an issue while processing your article. Please try again with a different article or contact support if the problem persists."));
     }
 
     @Test
@@ -213,7 +218,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Unable to generate summary."));
+                .andExpect(jsonPath("$.message").value("Unable to generate summary."))
+                .andExpect(jsonPath("$.details").value("We encountered an issue while processing your article. Please try again with a different article or contact support if the problem persists."));
     }
 
     @Test
@@ -228,7 +234,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Unable to reach the article URL."));
+                .andExpect(jsonPath("$.message").value("Unable to reach the article URL."))
+                .andExpect(jsonPath("$.details").value("Please check the URL and try again. The website may be temporarily unavailable."));
     }
 
     @Test
@@ -244,7 +251,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Unable to access article content."));
+                .andExpect(jsonPath("$.message").value("Unable to access article content."))
+                .andExpect(jsonPath("$.details").value("The article may be behind a paywall or require special access. Please try a different article or check if you can access it directly."));
     }
 
     @Test
@@ -259,7 +267,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Unable to process the article."));
+                .andExpect(jsonPath("$.message").value("Unable to process the article."))
+                .andExpect(jsonPath("$.details").value("Please verify the article URL is accessible and try again, or contact support if the problem persists."));
     }
 
     @Test
@@ -274,7 +283,8 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Something went wrong."));
+                .andExpect(jsonPath("$.message").value("Something went wrong."))
+                .andExpect(jsonPath("$.details").value("We encountered an unexpected issue. Please try again later or contact support if the problem persists."));
     }
 
     @Test
@@ -289,6 +299,7 @@ class ArticleControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Unable to generate summary."));
+                .andExpect(jsonPath("$.message").value("Unable to generate summary."))
+                .andExpect(jsonPath("$.details").value("We encountered an issue while processing your article. Please try again with a different article or contact support if the problem persists."));
     }
 }

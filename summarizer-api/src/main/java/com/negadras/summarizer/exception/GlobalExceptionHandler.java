@@ -23,8 +23,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
-                "Invalid request format.",
-                "Please check your request data and try again. Make sure all required fields are included and properly formatted."
+            "Invalid request format.", 
+            "Please check your request data and try again. Make sure all required fields are included and properly formatted."
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
@@ -32,8 +32,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IOException.class)
     public ResponseEntity<ErrorResponse> handleIOException(IOException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
-                "Unable to process your request.",
-                "We're experiencing technical difficulties. Please try again later or contact support if the problem persists."
+            "Unable to process your request.", 
+            "We're experiencing technical difficulties. Please try again later or contact support if the problem persists."
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -41,13 +41,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ArticleScrapingException.class)
     public ResponseEntity<ErrorResponse> handleArticleScrapingException(ArticleScrapingException ex) {
         String originalMessage = ex.getMessage();
-
+        
         // Keep user-friendly messages from ScraperService, make generic ones more helpful
         String userMessage;
         if (originalMessage != null && (
-                originalMessage.contains("Unable to extract sufficient content") ||
-                        originalMessage.contains("paywall") ||
-                        originalMessage.contains("JavaScript")
+            originalMessage.contains("Unable to extract sufficient content") ||
+            originalMessage.contains("paywall") ||
+            originalMessage.contains("JavaScript")
         )) {
             userMessage = "Unable to access article content.";
         } else if (originalMessage != null && originalMessage.contains("Failed to connect")) {
@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
         } else {
             userMessage = "Unable to process the article.";
         }
-
+        
         String userDetails;
         if (originalMessage != null && originalMessage.contains("paywall")) {
             userDetails = "The article may be behind a paywall or require special access. Please try a different article or check if you can access it directly.";
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
         } else {
             userDetails = "Please verify the article URL is accessible and try again, or contact support if the problem persists.";
         }
-
+        
         ErrorResponse errorResponse = new ErrorResponse(userMessage, userDetails);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
@@ -76,8 +76,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiConfigurationException.class)
     public ResponseEntity<ErrorResponse> handleApiConfigurationException(ApiConfigurationException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
-                "Service temporarily unavailable.",
-                "Our summarization service is currently experiencing configuration issues. Please try again later or contact support if the problem persists."
+            "Service temporarily unavailable.", 
+            "Our summarization service is currently experiencing configuration issues. Please try again later or contact support if the problem persists."
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
     }
@@ -85,18 +85,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NonTransientAiException.class)
     public ResponseEntity<ErrorResponse> handleNonTransientAiException(NonTransientAiException ex) {
         String message = ex.getMessage();
-
+        
         if (message != null && (message.contains("401") || message.contains("invalid_api_key") || message.contains("Incorrect API key"))) {
             ErrorResponse errorResponse = new ErrorResponse(
-                    "Service temporarily unavailable.",
-                    "Our AI summarization service is currently experiencing issues. Please try again later or contact support if the problem persists."
+                "Service temporarily unavailable.", 
+                "Our AI summarization service is currently experiencing issues. Please try again later or contact support if the problem persists."
             );
             return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
         }
-
+        
         ErrorResponse errorResponse = new ErrorResponse(
-                "Service temporarily unavailable.",
-                "Our AI service is currently experiencing issues. Please try again later."
+            "Service temporarily unavailable.", 
+            "Our AI service is currently experiencing issues. Please try again later."
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_GATEWAY);
     }
@@ -104,8 +104,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(SummarizationException.class)
     public ResponseEntity<ErrorResponse> handleSummarizationException(SummarizationException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
-                "Unable to generate summary.",
-                "We encountered an issue while processing your article. Please try again with a different article or contact support if the problem persists."
+            "Unable to generate summary.", 
+            "We encountered an issue while processing your article. Please try again with a different article or contact support if the problem persists."
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -113,8 +113,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse(
-                "Something went wrong.",
-                "We encountered an unexpected issue. Please try again later or contact support if the problem persists."
+            "Something went wrong.", 
+            "We encountered an unexpected issue. Please try again later or contact support if the problem persists."
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }

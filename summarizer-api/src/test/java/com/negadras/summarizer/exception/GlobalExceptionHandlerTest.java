@@ -22,14 +22,14 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleNonTransientAiException_OpenAIAuthError_ReturnsServiceUnavailable() {
-        // given
+        // Given
         String errorMessage = "HTTP 401 - {\"error\": {\"message\": \"Incorrect API key provided\", \"type\": \"invalid_api_key\"}}";
         NonTransientAiException exception = new NonTransientAiException(errorMessage);
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleNonTransientAiException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
         assertEquals("Service temporarily unavailable.", response.getBody().message());
         assertEquals("Our AI summarization service is currently experiencing issues. Please try again later or contact support if the problem persists.",
@@ -38,14 +38,14 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleNonTransientAiException_InvalidApiKeyError_ReturnsServiceUnavailable() {
-        // given
+        // Given
         String errorMessage = "invalid_api_key: The API key is invalid";
         NonTransientAiException exception = new NonTransientAiException(errorMessage);
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleNonTransientAiException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
         assertEquals("Service temporarily unavailable.", response.getBody().message());
         assertEquals("Our AI summarization service is currently experiencing issues. Please try again later or contact support if the problem persists.",
@@ -54,14 +54,14 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleNonTransientAiException_OtherAIError_ReturnsBadGateway() {
-        // given
+        // Given
         String errorMessage = "HTTP 429 - Rate limit exceeded";
         NonTransientAiException exception = new NonTransientAiException(errorMessage);
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleNonTransientAiException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.BAD_GATEWAY, response.getStatusCode());
         assertEquals("Service temporarily unavailable.", response.getBody().message());
         assertEquals("Our AI service is currently experiencing issues. Please try again later.",
@@ -70,13 +70,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleApiConfigurationException_ReturnsServiceUnavailable() {
-        // given
+        // Given
         ApiConfigurationException exception = new ApiConfigurationException("Missing API key configuration");
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleApiConfigurationException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
         assertEquals("Service temporarily unavailable.", response.getBody().message());
         assertEquals("Our summarization service is currently experiencing configuration issues. Please try again later or contact support if the problem persists.", response.getBody().details());
@@ -84,13 +84,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleSummarizationException_ReturnsInternalServerError() {
-        // given
+        // Given
         SummarizationException exception = new SummarizationException("Failed to process text", new RuntimeException("Test cause"));
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleSummarizationException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("Unable to generate summary.", response.getBody().message());
         assertEquals("We encountered an issue while processing your article. Please try again with a different article or contact support if the problem persists.", response.getBody().details());
@@ -98,13 +98,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleHttpMessageNotReadableException_ReturnsBadRequest() {
-        // given
+        // Given
         HttpMessageNotReadableException exception = new HttpMessageNotReadableException("Invalid JSON", (Throwable) null);
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleHttpMessageNotReadableException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Invalid request format.", response.getBody().message());
         assertEquals("Please check your request data and try again. Make sure all required fields are included and properly formatted.", response.getBody().details());
@@ -112,13 +112,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleIOException_ReturnsInternalServerError() {
-        // given
+        // Given
         IOException exception = new IOException("File not found");
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIOException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("Unable to process your request.", response.getBody().message());
         assertEquals("We're experiencing technical difficulties. Please try again later or contact support if the problem persists.", response.getBody().details());
@@ -126,13 +126,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleArticleScrapingException_PaywallError_ReturnsBadRequest() {
-        // given
+        // Given
         ArticleScrapingException exception = new ArticleScrapingException("Unable to extract sufficient content from the URL. The article may be behind a paywall or require JavaScript.");
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleArticleScrapingException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Unable to access article content.", response.getBody().message());
         assertEquals("The article may be behind a paywall or require special access. Please try a different article or check if you can access it directly.", response.getBody().details());
@@ -140,13 +140,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleArticleScrapingException_ConnectionError_ReturnsBadRequest() {
-        // given
+        // Given
         ArticleScrapingException exception = new ArticleScrapingException("Failed to connect to the URL: http://example.com");
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleArticleScrapingException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Unable to reach the article URL.", response.getBody().message());
         assertEquals("Please check the URL and try again. The website may be temporarily unavailable.", response.getBody().details());
@@ -154,13 +154,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleArticleScrapingException_InvalidUrlError_ReturnsBadRequest() {
-        // given
+        // Given
         ArticleScrapingException exception = new ArticleScrapingException("Invalid URL: not-a-url");
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleArticleScrapingException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Invalid article URL.", response.getBody().message());
         assertEquals("Please check that the URL is correct and points to a valid article.", response.getBody().details());
@@ -168,13 +168,13 @@ class GlobalExceptionHandlerTest {
 
     @Test
     void handleGlobalException_ReturnsInternalServerError() {
-        // given
+        // Given
         RuntimeException exception = new RuntimeException("Unexpected error");
 
-        // when
+        // When
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleGlobalException(exception);
 
-        // then
+        // Then
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("Something went wrong.", response.getBody().message());
         assertEquals("We encountered an unexpected issue. Please try again later or contact support if the problem persists.", response.getBody().details());

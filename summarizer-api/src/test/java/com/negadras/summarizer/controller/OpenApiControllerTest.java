@@ -11,13 +11,12 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = OpenApiController.class)
+@WebMvcTest(OpenApiController.class)
 @Import(com.negadras.summarizer.config.TestSecurityConfig.class)
 class OpenApiControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
 
     @Test
     void getApiDocs_shouldReturnJsonOpenApiSpec() throws Exception {
@@ -186,7 +185,7 @@ class OpenApiControllerTest {
     void getOpenApiYaml_shouldContainRequiredFields() throws Exception {
         mockMvc.perform(get("/openapi.yaml"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(matchesPattern("(?s).*openapi:\s*[0-9.]+.*")))
+                .andExpect(content().string(matchesPattern("(?s).*openapi:\\s*[0-9.]+.*")))
                 .andExpect(content().string(matchesPattern("(?s).*info:.*")))
                 .andExpect(content().string(matchesPattern("(?s).*paths:.*")));
     }

@@ -7,6 +7,10 @@ info:
     
     The API leverages OpenAI's GPT-4o model to generate concise summaries 
     with key points extraction from articles.
+    
+    The API also provides user-specific features for authenticated users,
+    including saving summaries, viewing user statistics, and accessing
+    showcase summaries.
 
   version: 1.0.0
   contact:
@@ -22,6 +26,7 @@ servers:
 
 security:
   - {}
+  - bearerAuth: []
 
 paths:
   /api/summarize/text:
@@ -191,12 +196,385 @@ paths:
                     message: "Failed to summarize the article."
                     details: "Error processing extracted content"
 
+  /api/users/me/summaries:
+    get:
+      summary: Get user summaries
+      description: |
+        Retrieves a paginated list of summaries for the authenticated user with optional filtering.
+      operationId: getUserSummaries
+      tags:
+        - User Summaries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (zero-based)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+        - name: saved
+          in: query
+          description: Filter by saved status
+          required: false
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          required: false
+          schema:
+            type: string
+            default: createdAt
+            enum: [createdAt, title, originalWordCount, summaryWordCount, compressionRatio]
+        - name: sortOrder
+          in: query
+          description: Sort direction
+          required: false
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummariesResponse'
+              examples:
+                user_summaries:
+                  summary: User summaries list
+                  value:
+                    summaries:
+                      - id: 123
+                        title: "Understanding Machine Learning"
+                        summaryContent: "Machine learning is a subset of artificial intelligence..."
+                        keyPoints:
+                          - "ML requires quality data"
+                          - "Algorithms learn patterns from data"
+                          - "Models improve with more training"
+                        originalWordCount: 1250
+                        summaryWordCount: 85
+                        compressionRatio: 93
+                        saved: true
+                        createdAt: "2025-07-15T14:30:45"
+                      - id: 124
+                        title: "The Future of Renewable Energy"
+                        summaryContent: "Renewable energy sources are becoming increasingly important..."
+                        keyPoints:
+                          - "Solar and wind are growing rapidly"
+                          - "Storage solutions are improving"
+                          - "Cost is decreasing annually"
+                        originalWordCount: 980
+                        summaryWordCount: 75
+                        compressionRatio: 92
+                        saved: false
+                        createdAt: "2025-07-14T10:15:22"
+                    currentPage: 0
+                    totalPages: 5
+                    totalCount: 42
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Authentication required
+                  value:
+                    message: "Authentication required"
+                    details: "Valid JWT token is required for this endpoint"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/me/summaries/{id}:
+    get:
+      summary: Get user summary by ID
+      description: |
+        Retrieves a specific summary by ID for the authenticated user.
+      operationId: getUserSummaryById
+      tags:
+        - User Summaries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the summary to retrieve
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummaryDTO'
+              examples:
+                user_summary:
+                  summary: User summary details
+                  value:
+                    id: 123
+                    title: "Understanding Machine Learning"
+                    summaryContent: "Machine learning is a subset of artificial intelligence..."
+                    keyPoints:
+                      - "ML requires quality data"
+                      - "Algorithms learn patterns from data"
+                      - "Models improve with more training"
+                    originalWordCount: 1250
+                    summaryWordCount: 85
+                    compressionRatio: 93
+                    saved: true
+                    createdAt: "2025-07-15T14:30:45"
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Summary not found or doesn't belong to the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: Summary not found
+                  value:
+                    message: "Summary not found"
+                    details: "The requested summary does not exist or does not belong to the authenticated user"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/me/summaries/{id}/save:
+    post:
+      summary: Save summary
+      description: |
+        Marks a summary as saved for the authenticated user.
+      operationId: saveSummary
+      tags:
+        - User Summaries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the summary to save
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Summary not found or doesn't belong to the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Unsave summary
+      description: |
+        Removes the saved status from a summary for the authenticated user.
+      operationId: unsaveSummary
+      tags:
+        - User Summaries
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID of the summary to unsave
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Summary not found or doesn't belong to the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/me/stats:
+    get:
+      summary: Get user statistics
+      description: |
+        Retrieves usage statistics for the authenticated user.
+      operationId: getUserStats
+      tags:
+        - User Statistics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStatsDTO'
+              examples:
+                user_stats:
+                  summary: User statistics
+                  value:
+                    totalSummaries: 42
+                    wordsSaved: 45000
+                    timeSaved: 225
+        '401':
+          description: Unauthorized - Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/summaries/showcase:
+    get:
+      summary: Get showcase summaries
+      description: |
+        Retrieves a paginated list of showcase summaries with optional category filtering.
+      operationId: getShowcaseSummaries
+      tags:
+        - Showcase
+      parameters:
+        - name: page
+          in: query
+          description: Page number (zero-based)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 3
+            minimum: 1
+            maximum: 10
+        - name: category
+          in: query
+          description: Filter by category
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowcaseResponse'
+              examples:
+                showcase_summaries:
+                  summary: Showcase summaries list
+                  value:
+                    summaries:
+                      - id: "abc123"
+                        title: "The Future of AI"
+                        snippet: "Artificial intelligence is transforming industries..."
+                        keyPoints:
+                          - "AI adoption is accelerating"
+                          - "Ethical considerations are important"
+                          - "Human oversight remains necessary"
+                        stats:
+                          originalWords: 1800
+                          summaryWords: 95
+                          compressionRatio: 95
+                        category: "Technology"
+                        popularity: 87
+                      - id: "def456"
+                        title: "Climate Change Solutions"
+                        snippet: "Innovative approaches to addressing climate change..."
+                        keyPoints:
+                          - "Renewable energy is critical"
+                          - "Policy changes are needed"
+                          - "Individual actions matter"
+                        stats:
+                          originalWords: 2100
+                          summaryWords: 110
+                          compressionRatio: 95
+                        category: "Environment"
+                        popularity: 92
+                    currentPage: 0
+                    totalPages: 3
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     noAuth:
       type: http
       scheme: bearer
       description: "No authentication required - API is public accessible"
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT authentication token required for user-specific endpoints"
   schemas:
     TextSummarizeRequest:
       type: object
@@ -336,6 +714,283 @@ components:
         message: "Failed to summarize the article."
         details: "OpenAI API error: Rate limit exceeded"
 
+    UserSummaryDTO:
+      type: object
+      required:
+        - id
+        - title
+        - summaryContent
+        - keyPoints
+        - originalWordCount
+        - summaryWordCount
+        - compressionRatio
+        - saved
+        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique identifier for the user summary
+          example: 123
+        title:
+          type: string
+          description: Title of the summary
+          example: "Understanding Machine Learning"
+        summaryContent:
+          type: string
+          description: The generated summary text
+          example: "Machine learning is a subset of artificial intelligence..."
+        keyPoints:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+          description: Key points extracted from the article
+          example:
+            - "ML requires quality data"
+            - "Algorithms learn patterns from data"
+            - "Models improve with more training"
+        originalWordCount:
+          type: integer
+          minimum: 0
+          description: Number of words in the original content
+          example: 1250
+        summaryWordCount:
+          type: integer
+          minimum: 0
+          description: Number of words in the summary
+          example: 85
+        compressionRatio:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage reduction in word count
+          example: 93
+        saved:
+          type: boolean
+          description: Whether the summary is saved by the user
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time when the summary was created
+          example: "2025-07-15T14:30:45"
+      example:
+        id: 123
+        title: "Understanding Machine Learning"
+        summaryContent: "Machine learning is a subset of artificial intelligence..."
+        keyPoints:
+          - "ML requires quality data"
+          - "Algorithms learn patterns from data"
+          - "Models improve with more training"
+        originalWordCount: 1250
+        summaryWordCount: 85
+        compressionRatio: 93
+        saved: true
+        createdAt: "2025-07-15T14:30:45"
+
+    UserSummariesResponse:
+      type: object
+      required:
+        - summaries
+        - currentPage
+        - totalPages
+        - totalCount
+      properties:
+        summaries:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/UserSummaryDTO'
+          description: List of user summaries
+        currentPage:
+          type: integer
+          minimum: 0
+          description: Current page number (zero-based)
+          example: 0
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+          example: 5
+        totalCount:
+          type: integer
+          minimum: 0
+          description: Total number of summaries
+          example: 42
+      example:
+        summaries:
+          - id: 123
+            title: "Understanding Machine Learning"
+            summaryContent: "Machine learning is a subset of artificial intelligence..."
+            keyPoints:
+              - "ML requires quality data"
+              - "Algorithms learn patterns from data"
+              - "Models improve with more training"
+            originalWordCount: 1250
+            summaryWordCount: 85
+            compressionRatio: 93
+            saved: true
+            createdAt: "2025-07-15T14:30:45"
+        currentPage: 0
+        totalPages: 5
+        totalCount: 42
+
+    UserStatsDTO:
+      type: object
+      required:
+        - totalSummaries
+        - wordsSaved
+        - timeSaved
+      properties:
+        totalSummaries:
+          type: integer
+          minimum: 0
+          description: Total number of summaries created by the user
+          example: 42
+        wordsSaved:
+          type: integer
+          minimum: 0
+          description: Total number of words saved through summarization
+          example: 45000
+        timeSaved:
+          type: integer
+          minimum: 0
+          description: Estimated time saved in minutes
+          example: 225
+      example:
+        totalSummaries: 42
+        wordsSaved: 45000
+        timeSaved: 225
+
+    ShowcaseSummaryStats:
+      type: object
+      required:
+        - originalWords
+        - summaryWords
+        - compressionRatio
+      properties:
+        originalWords:
+          type: integer
+          minimum: 0
+          description: Number of words in the original content
+          example: 1800
+        summaryWords:
+          type: integer
+          minimum: 0
+          description: Number of words in the summary
+          example: 95
+        compressionRatio:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Percentage reduction in word count
+          example: 95
+      example:
+        originalWords: 1800
+        summaryWords: 95
+        compressionRatio: 95
+
+    ShowcaseSummaryDTO:
+      type: object
+      required:
+        - id
+        - title
+        - snippet
+        - keyPoints
+        - stats
+        - popularity
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the showcase summary
+          example: "abc123"
+        title:
+          type: string
+          description: Title of the summary
+          example: "The Future of AI"
+        snippet:
+          type: string
+          description: Short excerpt from the summary
+          example: "Artificial intelligence is transforming industries..."
+        keyPoints:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+          description: Key points extracted from the article
+          example:
+            - "AI adoption is accelerating"
+            - "Ethical considerations are important"
+            - "Human oversight remains necessary"
+        stats:
+          $ref: '#/components/schemas/ShowcaseSummaryStats'
+        category:
+          type: string
+          description: Category of the summary
+          example: "Technology"
+        popularity:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Popularity score of the summary
+          example: 87
+      example:
+        id: "abc123"
+        title: "The Future of AI"
+        snippet: "Artificial intelligence is transforming industries..."
+        keyPoints:
+          - "AI adoption is accelerating"
+          - "Ethical considerations are important"
+          - "Human oversight remains necessary"
+        stats:
+          originalWords: 1800
+          summaryWords: 95
+          compressionRatio: 95
+        category: "Technology"
+        popularity: 87
+
+    ShowcaseResponse:
+      type: object
+      required:
+        - summaries
+        - currentPage
+        - totalPages
+      properties:
+        summaries:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/ShowcaseSummaryDTO'
+          description: List of showcase summaries
+        currentPage:
+          type: integer
+          minimum: 0
+          description: Current page number (zero-based)
+          example: 0
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+          example: 3
+      example:
+        summaries:
+          - id: "abc123"
+            title: "The Future of AI"
+            snippet: "Artificial intelligence is transforming industries..."
+            keyPoints:
+              - "AI adoption is accelerating"
+              - "Ethical considerations are important"
+              - "Human oversight remains necessary"
+            stats:
+              originalWords: 1800
+              summaryWords: 95
+              compressionRatio: 95
+            category: "Technology"
+            popularity: 87
+        currentPage: 0
+        totalPages: 3
+
   examples:
     TextSummarizeRequestExample:
       summary: Text summarization request
@@ -367,3 +1022,9 @@ components:
 tags:
   - name: Summarization
     description: Article summarization operations
+  - name: User Summaries
+    description: User-specific summary management operations
+  - name: User Statistics
+    description: User statistics operations
+  - name: Showcase
+    description: Public showcase summaries operations
