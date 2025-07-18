@@ -1,0 +1,5 @@
+misconfigurations:
+vulnerabilities:
+  - id: CVE-2025-48924
+    expired_at: 2025-08-17
+    statement: transitive dependency wait for main dependency update

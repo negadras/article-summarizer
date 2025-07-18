@@ -195,7 +195,7 @@ paths:
                   value:
                     message: "Failed to summarize the article."
                     details: "Error processing extracted content"
-                    
+
   /api/users/me/summaries:
     get:
       summary: Get user summaries
@@ -303,7 +303,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              
+
   /api/users/me/summaries/{id}:
     get:
       summary: Get user summary by ID
@@ -369,7 +369,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-                
+
   /api/users/me/summaries/{id}/save:
     post:
       summary: Save summary
@@ -447,7 +447,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-                
+
   /api/users/me/stats:
     get:
       summary: Get user statistics
@@ -484,7 +484,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-                
+
   /api/summaries/showcase:
     get:
       summary: Get showcase summaries
@@ -713,7 +713,7 @@ components:
       example:
         message: "Failed to summarize the article."
         details: "OpenAI API error: Rate limit exceeded"
-        
+
     UserSummaryDTO:
       type: object
       required:
@@ -742,6 +742,7 @@ components:
           example: "Machine learning is a subset of artificial intelligence..."
         keyPoints:
           type: array
+          maxItems: 10
           items:
             type: string
           description: Key points extracted from the article
@@ -787,7 +788,7 @@ components:
         compressionRatio: 93
         saved: true
         createdAt: "2025-07-15T14:30:45"
-        
+
     UserSummariesResponse:
       type: object
       required:
@@ -833,7 +834,7 @@ components:
         currentPage: 0
         totalPages: 5
         totalCount: 42
-        
+
     UserStatsDTO:
       type: object
       required:
@@ -860,7 +861,7 @@ components:
         totalSummaries: 42
         wordsSaved: 45000
         timeSaved: 225
-        
+
     ShowcaseSummaryStats:
       type: object
       required:
@@ -888,7 +889,7 @@ components:
         originalWords: 1800
         summaryWords: 95
         compressionRatio: 95
-        
+
     ShowcaseSummaryDTO:
       type: object
       required:
@@ -913,6 +914,7 @@ components:
           example: "Artificial intelligence is transforming industries..."
         keyPoints:
           type: array
+          maxItems: 10
           items:
             type: string
           description: Key points extracted from the article
@@ -946,7 +948,7 @@ components:
           compressionRatio: 95
         category: "Technology"
         popularity: 87
-        
+
     ShowcaseResponse:
       type: object
       required:
